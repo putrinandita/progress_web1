@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8" />
+<title>Login Admin - Cafe</title>
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<div class="container">
+  <div class="card" style="max-width:420px;margin:80px auto;">
+    <h2>Login Admin Cafe</h2>
+    <p class="center small">Gunakan username: <b>admin</b> password: <b>admin</b> (default)</p>
+    <div id="alert" class="center small" style="color:red;margin-bottom:8px;"></div>
+    <form id="loginForm">
+      <label>Username</label>
+      <input type="text" id="username" required>
+      <label>Password</label>
+      <input type="password" id="password" required>
+      <button type="submit">Login</button>
+    </form>
+  </div>
+</div>
+
+<script>
+document.getElementById('loginForm').addEventListener('submit', function(e){
+  e.preventDefault();
+  const u = document.getElementById('username').value.trim();
+  const p = document.getElementById('password').value.trim();
+  const alertEl = document.getElementById('alert');
+
+  if (u === 'admin' && p === 'admin') {
+    sessionStorage.setItem('adminLogged', 'true');
+    sessionStorage.setItem('adminUser', u);
+    localStorage.setItem('last_login', u);
+    window.location.href = 'dashboard.html';
+  } else {
+    alertEl.textContent = 'Username atau password salah!';
+  }
+});
+</script>
+</body>
+</html>

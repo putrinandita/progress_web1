@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8" />
+<title>Kelola Menu - Cafe</title>
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<div class="container">
+  <div class="card">
+    <h2>Data Menu</h2>
+    <div class="top-links">
+      <button class="btn" onclick="location.href='add.html'">+ Tambah Menu</button>
+      <button class="btn btn-secondary" onclick="location.href='../dashboard.html'">Kembali</button>
+      <button class="btn btn-danger" onclick="logout()">Logout</button>
+    </div>
+
+    <table id="tableMenu">
+      <thead>
+        <tr><th>ID</th><th>Foto</th><th>Nama Menu</th><th>Harga</th><th>Kategori</th><th>Aksi</th></tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+if (!sessionStorage.getItem('adminLogged')) location.href = '../index.html';
+
+function getMenus(){ return JSON.parse(localStorage.getItem('menus')||'[]'); }
+function saveMenus(arr){ localStorage.setItem('menus', JSON.stringify(arr)); }
+
+function render(){
+  const tbody = document.querySelector('#tableMenu tbody');
+  tbody.innerHTML = '';
+  const menus = getMenus();
+  menus.forEach((m)=>{
+    // Logika untuk menampilkan foto (menggunakan data Base64 yang tersimpan di m.foto)
+    const fotoTag = m.foto 
+      ? `<img src="${m.foto}" alt="Foto Menu" style="height: 50px; width: auto; object-fit: cover;">` 
+      : '—';
+      
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td style="text-align:center;">${m.id}</td>
+      <td style="text-align:center;">${fotoTag}</td> <td>${m.nama_menu}</td>
+      <td style="text-align:right;">Rp ${Number(m.harga).toLocaleString('id-ID')}</td>
+      <td style="text-align:center;">${m.kategori}</td>
+      <td style="text-align:center;">
+        <div class="action-buttons"> <button class="btn" onclick="edit(${m.id})">Edit</button>
+          <button class="btn btn-danger" onclick="hapus(${m.id})">Hapus</button>
+        </div>
+      </td>`;
+    tbody.appendChild(tr);
+  });
+}
+function hapus(id){
+  if(!confirm('Yakin hapus?')) return;
+  const menus = getMenus().filter(m=>m.id!==id);
+  saveMenus(menus);
+  render();
+  // Perbarui ringkasan di dashboard
+  if (window.opener && window.opener.loadSummary) window.opener.loadSummary();
+}
+function edit(id){
+  localStorage.setItem('editMenuId', id);
+  location.href = 'edit.html';
+}
+function logout(){
+  sessionStorage.removeItem('adminLogged'); sessionStorage.removeItem('adminUser'); location.href='../index.html';
+}
+// initial demo data if empty
+if (!localStorage.getItem('menus')) {
+  // Pastikan data awal memiliki properti 'foto'
+  const sample = [
+    { id:1, nama_menu:'Espresso', harga:12000, kategori:'Minuman', foto: null },
+    { id:2, nama_menu:'Nasi Goreng', harga:25000, kategori:'Makanan', foto: null }
+  ];
+  saveMenus(sample);
+} else {
+  // Jika menu sudah ada, perbarui data lama untuk memastikan properti foto ada
+  let existingMenus = getMenus();
+  let needsUpdate = false;
+  existingMenus = existingMenus.map(m => {
+    if (m.foto === undefined) {
+      needsUpdate = true;
+      return {...m, foto: null};
+    }
+    return m;
+  });
+  if(needsUpdate) saveMenus(existingMenus);
+}
+render();
+</script>
+</body>
+</html>

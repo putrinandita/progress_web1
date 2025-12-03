@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="id">
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8" />
+<title>Login Admin - Cafe</title>
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<div class="container">
+  <div class="card">
+    <div class="header">
+      <div>
+        <h2>Dashboard Admin Cafe</h2>
+        <div class="small">Kelola menu dan transaksi</div>
+      </div>
+      <div class="right">
+        <div class="small">Halo, <b id="adminName"></b></div>
+        <div class="small">Last login: <span id="lastLogin"></span></div>
+        <div style="margin-top:8px;">
+          <button class="btn" id="btnMenu">Kelola Menu</button>
+          <button class="btn" id="btnTrans">Catat Transaksi</button>
+          <button class="btn btn-danger" id="logout">Logout</button>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <h3>Ringkasan</h3>
+      <div id="summary" class="center small"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+if (!sessionStorage.getItem('adminLogged')) location.href = 'index.html';
+
+document.getElementById('adminName').textContent = sessionStorage.getItem('adminUser') || 'Admin';
+document.getElementById('lastLogin').textContent = localStorage.getItem('last_login') || 'Belum ada';
+
+document.getElementById('btnMenu').addEventListener('click', ()=> location.href='menu/list.html');
+document.getElementById('btnTrans').addEventListener('click', ()=> location.href='transaksi/list.html');
+document.getElementById('logout').addEventListener('click', ()=>{
+  sessionStorage.removeItem('adminLogged');
+  sessionStorage.removeItem('adminUser');
+  window.location.href='index.html';
+});
+
+// summary: count menus & transactions
+function loadSummary(){
+  const menus = JSON.parse(localStorage.getItem('menus')||'[]');
+  const trans = JSON.parse(localStorage.getItem('transaksi')||'[]');
+  const totalPendapatan = trans.reduce((s,t)=> s + Number(t.total_harga||0), 0);
+  document.getElementById('summary').innerHTML =
+    `Total Menu: <b>${menus.length}</b> &nbsp; | &nbsp; Total Transaksi: <b>${trans.length}</b> &nbsp; | &nbsp; Pendapatan: <b>Rp ${totalPendapatan.toLocaleString('id-ID')}</b>`;
+}
+loadSummary();
+</script>
+</body>
+</html>

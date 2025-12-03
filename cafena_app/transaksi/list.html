@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8" />
+<title>Data Transaksi - Cafe</title>
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<div class="container">
+  <div class="card">
+    <h2>Data Transaksi</h2>
+    <div class="top-links">
+      <button class="btn" onclick="location.href='add.html'">+ Tambah Transaksi</button>
+      <button class="btn btn-secondary" onclick="location.href='../dashboard.html'">Kembali</button>
+      <button class="btn btn-danger" onclick="logout()">Logout</button>
+    </div>
+
+    <table id="tableTrans">
+      <thead><tr><th style="width:50px;">ID</th><th>Total Item</th><th>Total Harga</th><th>Tanggal</th><th style="width:180px;">Aksi</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+</div>
+
+<div id="modalDetail" style="display:none; position:fixed; z-index:1; left:0; top:0; width:100%; height:100%; overflow:auto; background-color:rgba(0,0,0,0.4);">
+  <div style="background-color: #fefefe; margin: 15% auto; padding: 20px; border: 1px solid #888; width: 80%; max-width: 600px; border-radius: 10px;">
+    <h3 style="border-bottom: 2px solid #ff99ab; padding-bottom: 10px;">Detail Transaksi <span id="detailID"></span></h3>
+    <table id="tableDetail" style="width:100%;">
+        <thead><tr><th>Menu</th><th>Jml</th><th>Harga Satuan</th><th>Subtotal</th></tr></thead>
+        <tbody></tbody>
+    </table>
+    <div style="font-weight: bold; font-size: 1.1em; text-align: right; margin-top: 15px;">
+        Total Transaksi: <span id="detailTotal"></span>
+    </div>
+    <button onclick="document.getElementById('modalDetail').style.display='none'" class="btn btn-secondary" style="margin-top: 20px;">Tutup</button>
+  </div>
+</div>
+
+<script>
+if (!sessionStorage.getItem('adminLogged')) location.href = '../index.html';
+
+function getTrans(){ return JSON.parse(localStorage.getItem('transaksi')||'[]'); }
+function saveTrans(arr){ localStorage.setItem('transaksi', JSON.stringify(arr)); }
+
+function render(){
+  const tbody = document.querySelector('#tableTrans tbody'); tbody.innerHTML = '';
+  const trans = getTrans().sort((a,b)=>b.id-a.id);
+  
+  trans.forEach(t=>{
+    const totalItems = t.items.reduce((sum, item) => sum + item.jumlah, 0); // Hitung total item
+    
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td style="text-align:center;">${t.id}</td>
+      <td style="text-align:center;">${totalItems}</td>
+      <td style="text-align:right;">Rp ${Number(t.total_harga).toLocaleString('id-ID')}</td>
+      <td>${t.tanggal}</td>
+      <td style="text-align:center;">
+        <div class="action-buttons">
+          <button class="btn" style="background-color: #ff99ab;" onclick="showDetail(${t.id})">Lihat Detail</button>
+          <button class="btn btn-danger" onclick="hapus(${t.id})">Hapus</button>
+        </div>
+      </td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+function showDetail(id){
+    const trans = getTrans().find(t => t.id === id);
+    if (!trans) return;
+
+    const tbodyDetail = document.querySelector('#tableDetail tbody'); tbodyDetail.innerHTML = '';
+    
+    trans.items.forEach(item => {
+        const subtotal = item.harga * item.jumlah;
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td>${item.nama}</td>
+            <td style="text-align:center;">${item.jumlah}</td>
+            <td style="text-align:right;">Rp ${Number(item.harga).toLocaleString('id-ID')}</td>
+            <td style="text-align:right;">Rp ${subtotal.toLocaleString('id-ID')}</td>
+        `;
+        tbodyDetail.appendChild(tr);
+    });
+
+    document.getElementById('detailID').textContent = `#${trans.id}`;
+    document.getElementById('detailTotal').textContent = `Rp ${Number(trans.total_harga).toLocaleString('id-ID')}`;
+    document.getElementById('modalDetail').style.display = 'block';
+}
+
+
+function hapus(id){
+  if(!confirm('Hapus transaksi?')) return;
+  const arr = getTrans().filter(x=>x.id!==id);
+  saveTrans(arr); render();
+  // Perbarui ringkasan di dashboard
+  if (window.opener && window.opener.loadSummary) window.opener.loadSummary();
+}
+function logout(){ sessionStorage.removeItem('adminLogged'); sessionStorage.removeItem('adminUser'); location.href='../index.html'; }
+
+if (!localStorage.getItem('transaksi')) {
+  localStorage.setItem('transaksi', JSON.stringify([]));
+}
+render();
+</script>
+</body>
+</html>

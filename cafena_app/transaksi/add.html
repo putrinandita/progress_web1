@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8" />
+<title>Catat Transaksi Baru - Cafe</title>
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<div class="container">
+  <div class="card">
+    <h2>Catat Transaksi Baru</h2>
+    <div style="display:flex; justify-content: space-between; gap: 20px;">
+        
+        <div style="flex: 1;">
+            <form id="formAddItem">
+              <label>Pilih Menu</label>
+              <select id="menu_id" required></select>
+              <label>Jumlah</label>
+              <input type="number" id="jumlah" min="1" value="1" required>
+              <button type="submit" class="btn" style="width:100%; margin-top:15px;">+ Tambah ke Keranjang</button>
+            </form>
+        </div>
+
+        <div style="flex: 2;">
+            <div class="card">
+                <h3>Keranjang Belanja</h3>
+                <table id="tableKeranjang">
+                    <thead><tr><th>Menu</th><th style="width:50px;">Jml</th><th>Harga</th><th>Subtotal</th><th style="width:80px;">Aksi</th></tr></thead>
+                    <tbody></tbody>
+                </table>
+                <div style="margin-top: 15px; border-top: 2px solid #ff99ab; padding-top: 10px;">
+                    <div style="font-weight: bold; font-size: 1.1em; text-align: right;">
+                        Total Akhir: <span id="totalAkhir">Rp 0</span>
+                    </div>
+                </div>
+                
+                <form id="formBayar">
+                    <button type="submit" style="background-color: #ff99ab;" class="btn">Proses Pembayaran & Simpan</button>
+                </form>
+            </div>
+            <div style="text-align:center;margin-top:10px;">
+              <button class="btn btn-secondary" onclick="location.href='list.html'">Kembali</button>
+            </div>
+        </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+if (!sessionStorage.getItem('adminLogged')) location.href = '../index.html';
+
+function getMenus(){ return JSON.parse(localStorage.getItem('menus')||'[]'); }
+function getTrans(){ return JSON.parse(localStorage.getItem('transaksi')||'[]'); }
+function saveTrans(arr){ localStorage.setItem('transaksi', JSON.stringify(arr)); }
+
+const menuSelect = document.getElementById('menu_id');
+let keranjang = []; // Array untuk menyimpan item yang saat ini ada di keranjang
+
+function loadMenus(){
+  const menus = getMenus();
+  menuSelect.innerHTML = '<option value="">-- Pilih Menu --</option>';
+  menus.forEach(m=> menuSelect.innerHTML += `<option value="${m.id}" data-harga="${m.harga}" data-nama="${m.nama_menu}">${m.nama_menu} - Rp ${Number(m.harga).toLocaleString('id-ID')}</option>`);
+}
+
+function renderKeranjang(){
+  const tbody = document.querySelector('#tableKeranjang tbody'); tbody.innerHTML = '';
+  let total = 0;
+  
+  keranjang.forEach((item, index)=>{
+    const subtotal = item.harga * item.jumlah;
+    total += subtotal;
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${item.nama}</td>
+      <td style="text-align:center;">${item.jumlah}</td>
+      <td style="text-align:right;">Rp ${Number(item.harga).toLocaleString('id-ID')}</td>
+      <td style="text-align:right;">Rp ${subtotal.toLocaleString('id-ID')}</td>
+      <td style="text-align:center;">
+        <button class="btn btn-danger" style="padding: 5px 8px; font-size: 12px;" onclick="hapusItemKeranjang(${index})">Hapus</button>
+      </td>`;
+    tbody.appendChild(tr);
+  });
+
+  document.getElementById('totalAkhir').textContent = `Rp ${total.toLocaleString('id-ID')}`;
+}
+
+function hapusItemKeranjang(index){
+    keranjang.splice(index, 1);
+    renderKeranjang();
+}
+
+// Tambah Item ke Keranjang
+document.getElementById('formAddItem').addEventListener('submit', function(e){
+  e.preventDefault();
+  const menu_id = Number(menuSelect.value);
+  const jumlah = Number(document.getElementById('jumlah').value);
+
+  if (!menu_id) { alert('Pilih menu'); return; }
+  if (jumlah <= 0) { alert('Jumlah harus lebih dari 0'); return; }
+
+  const opt = menuSelect.options[menuSelect.selectedIndex];
+  const harga = Number(opt.getAttribute('data-harga')||0);
+  const nama = opt.getAttribute('data-nama');
+  
+  // Tambahkan item ke keranjang
+  keranjang.push({ id: menu_id, nama: nama, harga: harga, jumlah: jumlah });
+  
+  document.getElementById('jumlah').value = 1;
+  menuSelect.value = ''; // Reset pilihan
+  renderKeranjang();
+});
+
+// Proses Pembayaran (Simpan Transaksi)
+document.getElementById('formBayar').addEventListener('submit', function(e){
+  e.preventDefault();
+
+  if (keranjang.length === 0) {
+      alert('Keranjang kosong! Tambahkan menu terlebih dahulu.');
+      return;
+  }
+  
+  const totalHarga = keranjang.reduce((sum, item) => sum + (item.harga * item.jumlah), 0);
+  const arr = getTrans();
+  const id = arr.length ? Math.max(...arr.map(x=>x.id))+1 : 1;
+  const tanggal = new Date().toLocaleString('id-ID', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  
+  // Objek transaksi baru menyimpan SEMUA item dalam properti 'items'
+  const newTrans = { 
+      id: id, 
+      tanggal: tanggal, 
+      total_harga: totalHarga,
+      items: keranjang // Simpan detail semua item di sini
+  };
+
+  arr.push(newTrans);
+  saveTrans(arr);
+  
+  // Perbarui ringkasan di dashboard
+  if (window.opener && window.opener.loadSummary) window.opener.loadSummary();
+  
+  alert(`Transaksi berhasil dicatat! Total: Rp ${totalHarga.toLocaleString('id-ID')}`);
+  location.href='list.html';
+});
+
+loadMenus();
+renderKeranjang(); // Inisialisasi tampilan
+</script>
+</body>
+</html>
